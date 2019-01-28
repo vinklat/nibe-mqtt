@@ -21,7 +21,7 @@ parser.add_argument(
     dest='mqtt_addr',
     help='mqtt broker host address',
     type=str,
-    default="172.28.16.1")
+    default="127.0.0.1")
 parser.add_argument(
     '-p',
     '--mqtt-broker-port',
