@@ -4,8 +4,8 @@ import re
 
 import requests
 
-logger = logging.getLogger()
-
+# create logger
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 class NibeDownlink(object):
     def __init__(self, username, password, hpid, variables):
@@ -23,10 +23,10 @@ class NibeDownlink(object):
                                         self.auth_data)
         if auth_result.status_code == 200:
             self.authenticated = True
-            logger.info("Succesfully authenticated")
+            logging.info("Succesfully authenticated")
             return True
         else:
-            logger.error(
+            logging.error(
                 "Failed to authenticate with status code: %d, content: %s",
                 auth_result.status_code, auth_result.content)
             return False
@@ -61,7 +61,7 @@ class NibeDownlink(object):
         try:
             data = json.loads(variable_query_result.content.decode('utf8'))
         except ValueError as e:
-            logger.exception(
+            logging.exception(
                 "Failed to decode JSON object: %s. Request status code: %d",
                 variable_query_result.content,
                 variable_query_result.status_code)
@@ -80,7 +80,7 @@ class NibeDownlink(object):
                     v = self.normalize_value(v)
                     decoded[value['VariableId']] = v
 
-            logger.info("Fetched: %s", str(decoded))
+            logging.info("Fetched: %s", str(decoded))
             return online, decoded
 
         return None, None

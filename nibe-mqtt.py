@@ -6,6 +6,9 @@ import logging
 import time
 from service import NibeDownlink
 
+# create logger
+logger = logging.getLogger(__name__)
+
 ##
 ## cmd line argument parser
 ##
@@ -72,16 +75,11 @@ parser.add_argument(
 pars = parser.parse_args()
 
 ##
-## create logger
+## set logger
 ##
 
-logger = logging.getLogger('switchboard-mqtt')
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(pars.log_level)
-formatter = logging.Formatter('%(levelname)s %(name)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+logging.basicConfig(
+    format='%(levelname)s %(module)s: %(message)s', level=pars.log_level)
 
 ##
 ## connect MQTT
