@@ -82,18 +82,6 @@ logging.basicConfig(
     format='%(levelname)s %(module)s: %(message)s', level=pars.log_level)
 
 ##
-## connect MQTT
-##
-
-mqtt_client = mqtt.Client()
-try:
-    mqtt_client.connect(pars.mqtt_addr, pars.mqtt_port, 60)
-except:
-    logger.error("can't connect to mqtt broker ({}:{})".format(
-        pars.mqtt_addr, pars.mqtt_port))
-    exit(1)
-
-##
 ## nibe uplink
 ##
 
@@ -107,44 +95,99 @@ with open(pars.conf_fname, 'r') as stream:
 nd = NibeDownlink(**c)
 topic = '{}/{}/R'.format(pars.topic, c['hpid'])
 
-while True:
-    online, values = nd.getValues()
-    payload = { 'ONLINE': online }
 
-    if (str(online)) == "True":
-        for key, value in values.items():
+##
+## connect MQTT
+##
 
-            m = {
-                "True": True,
-                "true": True,
-                "ON": True,
-                "On": True,
-                "on": True,
-                "OK": True,
-                "Yes": True,
-                "yes": True,
-                "ano": True,
-                "False": False,
-                "false": False,
-                "OFF": False,
-                "Off": False,
-                "off": False,
-                "LOW": False,
-                "No": False,
-                "no": False,
-                "ne": False
-            }
+mqtt_connected=False
 
-            if value in m:
-                value = m[value]
-
-            payload[str(key)] = value
-
+def on_connect(client, userdata, flags, rc):
+    '''
+    0: Connection successful
+    1: Connection refused – incorrect protocol version
+    2: Connection refused – invalid client identifier
+    3: Connection refused – server unavailable
+    4: Connection refused – bad username or password
+    5: Connection refused – not authorised
+    6-255: Currently unused.
+    '''
+    if rc==0:
+        client.connected_flag=True
+        logger.info("MQTT connected OK")
     else:
-        print("Device is offline")
+        logger.error("MQTT connect: code={}".format(rc))
 
-    j = json.dumps(payload)
-    logger.info("publish: {} {}".format(topic, j))
-    mqtt_client.publish(topic, j)
+def on_disconnect(client, userdata, rc):
+    client.connected_flag=False
+    logger.error("MQTT disconnect: code={}".format(rc))
 
-    time.sleep(60)
+def on_publish(client, userdata, mid):
+    logger.info("MQTT published: mid={}".format(mid))
+
+
+mqtt.Client.connected_flag=False
+mqtt_client = mqtt.Client("nibe-mqtt")
+mqtt_client.on_connect=on_connect
+mqtt_client.on_disconnect=on_disconnect
+mqtt_client.on_publish=on_publish
+
+def main():
+    logger.info("conecting to mqtt broker ({}:{})".format(pars.mqtt_addr, pars.mqtt_port))
+    try:
+        mqtt_client.connect(pars.mqtt_addr, pars.mqtt_port, 6)
+    except:
+        pass
+
+    mqtt_client.loop_start()
+
+    while True:
+        while not mqtt_client.connected_flag:
+            logger.debug("wait")
+            time.sleep(10)    
+        
+        online, values = nd.getValues()
+        payload = { 'ONLINE': online }
+
+        if (str(online)) == "True":
+            for key, value in values.items():
+
+                m = {
+                    "True": True,
+                    "true": True,
+                    "ON": True,
+                    "On": True,
+                    "on": True,
+                    "OK": True,
+                    "Yes": True,
+                    "yes": True,
+                    "ano": True,
+                    "False": False,
+                    "false": False,
+                    "OFF": False,
+                    "Off": False,
+                    "off": False,
+                    "LOW": False,
+                    "No": False,
+                    "no": False,
+                    "ne": False
+                }
+
+                if value in m:
+                    value = m[value]
+
+                payload[str(key)] = value
+
+        else:
+            print("Device is offline")
+        
+        j = json.dumps(payload)
+        logger.info("message: {} {}".format(topic, j))
+        ret=mqtt_client.publish(topic, j)
+        if ret[0]!=0:
+            logger.error("MQTT publish: ret={}".format(ret))
+
+        time.sleep(59)
+
+if __name__== "__main__":
+  main()
