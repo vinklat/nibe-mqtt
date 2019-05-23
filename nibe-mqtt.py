@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 ## cmd line argument parser
 ##
 
-parser = ArgumentParser(description='nibe-mqtt')
+parser = ArgumentParser(description="Read heat pump metrics from Nibe Uplink to MQTT")
 parser.add_argument(
     '-q',
     '--mqtt-broker-host',
@@ -82,7 +82,7 @@ logging.basicConfig(
     format='%(levelname)s %(module)s: %(message)s', level=pars.log_level)
 
 ##
-## nibe uplink
+## Nibe uplink
 ##
 
 #read config file and parse yaml to dict
@@ -95,15 +95,14 @@ with open(pars.conf_fname, 'r') as stream:
 nd = NibeDownlink(**c)
 topic = '{}/{}/R'.format(pars.topic, c['hpid'])
 
-
 ##
-## connect MQTT
+## MQTT
 ##
 
-mqtt_connected=False
 
 def on_connect(client, userdata, flags, rc):
     '''
+    rc values:
     0: Connection successful
     1: Connection refused – incorrect protocol version
     2: Connection refused – invalid client identifier
@@ -112,30 +111,34 @@ def on_connect(client, userdata, flags, rc):
     5: Connection refused – not authorised
     6-255: Currently unused.
     '''
-    if rc==0:
-        client.connected_flag=True
+    if rc == 0:
+        client.connected_flag = True
         logger.info("MQTT connected OK")
     else:
         logger.error("MQTT connect: code={}".format(rc))
 
+
 def on_disconnect(client, userdata, rc):
-    client.connected_flag=False
+    client.connected_flag = False
     logger.error("MQTT disconnect: code={}".format(rc))
 
+
 def on_publish(client, userdata, mid):
-    logger.info("MQTT published: mid={}".format(mid))
+    logger.info("MQTT published: topic={} mid={}".format(topic, mid))
 
 
-mqtt.Client.connected_flag=False
+mqtt.Client.connected_flag = False
 mqtt_client = mqtt.Client("nibe-mqtt")
-mqtt_client.on_connect=on_connect
-mqtt_client.on_disconnect=on_disconnect
-mqtt_client.on_publish=on_publish
+mqtt_client.on_connect = on_connect
+mqtt_client.on_disconnect = on_disconnect
+mqtt_client.on_publish = on_publish
+
 
 def main():
-    logger.info("conecting to mqtt broker ({}:{})".format(pars.mqtt_addr, pars.mqtt_port))
+    logger.info("conecting to mqtt broker ({}:{})".format(
+        pars.mqtt_addr, pars.mqtt_port))
     try:
-        mqtt_client.connect(pars.mqtt_addr, pars.mqtt_port, 6)
+        mqtt_client.connect(pars.mqtt_addr, pars.mqtt_port, 10)
     except:
         pass
 
@@ -144,10 +147,10 @@ def main():
     while True:
         while not mqtt_client.connected_flag:
             logger.debug("wait")
-            time.sleep(10)    
-        
+            time.sleep(10)
+
         online, values = nd.getValues()
-        payload = { 'ONLINE': online }
+        payload = {'ONLINE': online}
 
         if (str(online)) == "True":
             for key, value in values.items():
@@ -180,14 +183,14 @@ def main():
 
         else:
             print("Device is offline")
-        
+
         j = json.dumps(payload)
-        logger.info("message: {} {}".format(topic, j))
-        ret=mqtt_client.publish(topic, j)
-        if ret[0]!=0:
+        ret = mqtt_client.publish(topic, j)
+        if ret[0] != 0:
             logger.error("MQTT publish: ret={}".format(ret))
 
         time.sleep(59)
 
-if __name__== "__main__":
-  main()
+
+if __name__ == "__main__":
+    main()
