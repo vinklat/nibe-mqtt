@@ -128,7 +128,8 @@ def on_publish(client, userdata, mid):
 
 
 mqtt.Client.connected_flag = False
-mqtt_client = mqtt.Client("nibe-mqtt")
+mqtt_client = mqtt.Client(
+    __file__ + '_{0:010x}'.format(int(time.time() * 256))[:10])
 mqtt_client.on_connect = on_connect
 mqtt_client.on_disconnect = on_disconnect
 mqtt_client.on_publish = on_publish
