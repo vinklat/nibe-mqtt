@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 ## cmd line argument parser
 ##
 
-parser = ArgumentParser(description="Read heat pump metrics from Nibe Uplink to MQTT")
+parser = ArgumentParser(
+    description="Read heat pump metrics from Nibe Uplink to MQTT")
 parser.add_argument(
     '-q',
     '--mqtt-broker-host',
@@ -27,9 +28,17 @@ parser.add_argument(
     '--mqtt-broker-port',
     action='store',
     dest='mqtt_port',
-    help='mqtt port port',
+    help='mqtt broker port',
     type=int,
     default=1883)
+parser.add_argument(
+    '-k',
+    '--mqtt-keepalive',
+    action='store',
+    dest='mqtt_keepalive',
+    help='mqtt keepalive',
+    type=int,
+    default=60)
 parser.add_argument(
     '-c',
     '--nibe-config',
@@ -139,7 +148,8 @@ def main():
     logger.info("conecting to mqtt broker ({}:{})".format(
         pars.mqtt_addr, pars.mqtt_port))
     try:
-        mqtt_client.connect(pars.mqtt_addr, pars.mqtt_port, 10)
+        mqtt_client.connect(pars.mqtt_addr, pars.mqtt_port,
+                            pars.mqtt_keepalive)
     except:
         pass
 

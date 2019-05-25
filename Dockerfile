@@ -7,5 +7,5 @@ WORKDIR /nibe-mqtt
 COPY conf/*yml /nibe-mqtt/conf/
 COPY *.py /nibe-mqtt/
 
-ENTRYPOINT [ "python", "./nibe-mqtt.py" ]
+ENTRYPOINT [ "python", "nibe-mqtt.py" ]
 
