@@ -35,7 +35,7 @@ class NibeDownlink(object):
         try:
             return float(
                 re.sub(
-                    u'^([-\d.]+)(A|Hz|h|%|\u00B0C|DM|SM|bar|cent/kWh)?$',
+                    u'^([-\d.]+)(A|Hz|h|%|\u00B0C|DM|SM|bar|cent/kWh|kWh|l/m)?$',
                     r'\1',
                     value,
                     flags=re.UNICODE))
