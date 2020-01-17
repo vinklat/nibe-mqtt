@@ -1,6 +1,6 @@
 # nibe-mqtt
 
-- Heat pump metrics from Nibe Uplink to MQTT
+- Scrape heat pump metrics from Nibe Uplink to MQTT
 
 ## Quick HOWTO:
 
@@ -28,21 +28,20 @@ variables: [ 40083, 40081, 40079, 40004, 40067, 40033, 40008, 40012, 40013, 4001
 
 ### 3) Run it
 
-
 #### via docker
 ```
 docker run -v /my/conf:/nibe-mqtt/conf -p 1883:1883 \
-xvin/nibe-mqtt -q MQTT_BROKER_ADDR -p 1883 -c conf/nibe-uplink.yml -l DEBUG
+vinklat/nibe-mqtt -q MQTT_BROKER_ADDR -p 1883 -c conf/nibe-uplink.yml -l DEBUG
 ```
 
 #### or
-install required modules:  
+install from PyPI:
 
-`pip install -r requirements.txt`
+`pip install nibe-mqtt`
 
 and run 
 
-`python nibe-mqtt.py -q MQTT_BROKER_ADDR -p 1883 -c conf/nibe-uplink.yml -l DEBUG`
+`nibe-mqtt -q MQTT_BROKER_ADDR -p 1883 -c conf/nibe-uplink.yml -l DEBUG`
 
 ### 4) Subscribe metrics
 

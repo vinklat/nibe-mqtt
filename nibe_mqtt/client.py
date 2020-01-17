@@ -1,100 +1,27 @@
-from argparse import ArgumentParser, ArgumentTypeError
-import paho.mqtt.client as mqtt
+# -*- coding: utf-8 -*-
+# pylint: disable=E1101, C0103
+'''Scrape heat pump metrics from Nibe Uplink to MQTT'''
+
 import yaml
 import json
 import logging
 import time
-from service import NibeDownlink
+import paho.mqtt.client as mqtt
+from nibe_mqtt.version import __version__, get_build_info
+from nibe_mqtt.argparser import get_pars
+from nibe_mqtt.service import NibeDownlink
 
 # create logger
 logger = logging.getLogger(__name__)
 
-##
-## cmd line argument parser
-##
+# get parameters from command line arguments
+pars = get_pars()
 
-parser = ArgumentParser(
-    description="Read heat pump metrics from Nibe Uplink to MQTT")
-parser.add_argument(
-    '-q',
-    '--mqtt-broker-host',
-    action='store',
-    dest='mqtt_addr',
-    help='mqtt broker host address',
-    type=str,
-    default="127.0.0.1")
-parser.add_argument(
-    '-p',
-    '--mqtt-broker-port',
-    action='store',
-    dest='mqtt_port',
-    help='mqtt broker port',
-    type=int,
-    default=1883)
-parser.add_argument(
-    '-k',
-    '--mqtt-keepalive',
-    action='store',
-    dest='mqtt_keepalive',
-    help='mqtt keepalive',
-    type=int,
-    default=60)
-parser.add_argument(
-    '-c',
-    '--nibe-config',
-    action='store',
-    dest='conf_fname',
-    help='nibe credentials and variables config yaml file',
-    type=str,
-    default='conf/nibe-uplink.yml')
-parser.add_argument(
-    '-t',
-    '--mqtt-topic-prefix',
-    action='store',
-    dest='topic',
-    help='mqtt topic prefix',
-    type=str,
-    default='nibe-uplink')
+# set logger
+logging.basicConfig(format='%(levelname)s %(module)s: %(message)s',
+                    level=pars.log_level)
 
-LOG_LEVEL_STRINGS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']
-
-
-def log_level_string_to_int(log_level_string):
-    if not log_level_string in LOG_LEVEL_STRINGS:
-        message = 'invalid choice: {0} (choose from {1})'.format(
-            log_level_string, LOG_LEVEL_STRINGS)
-        raise ArgumentTypeError(message)
-
-    log_level_int = getattr(logging, log_level_string, logging.INFO)
-    # check the logging log_level_choices have not changed from our expected values
-    assert isinstance(log_level_int, int)
-
-    return log_level_int
-
-
-parser.add_argument(
-    '-l',
-    '--log-level',
-    action='store',
-    dest='log_level',
-    help='set the logging output level. {0}'.format(LOG_LEVEL_STRINGS),
-    type=log_level_string_to_int,
-    default='INFO')
-
-pars = parser.parse_args()
-
-##
-## set logger
-##
-
-logging.basicConfig(
-    format='%(levelname)s %(module)s: %(message)s', level=pars.log_level)
-
-##
-## Nibe uplink
-##
-
-#read config file and parse yaml to dict
+# read config file and parse yaml to dict
 with open(pars.conf_fname, 'r') as stream:
     try:
         c = yaml.load(stream)
@@ -104,13 +31,11 @@ with open(pars.conf_fname, 'r') as stream:
 nd = NibeDownlink(**c)
 topic = '{}/{}/R'.format(pars.topic, c['hpid'])
 
-##
-## MQTT
-##
-
 
 def on_connect(client, userdata, flags, rc):
     '''
+    fired upon a successful connection
+
     rc values:
     0: Connection successful
     1: Connection refused – incorrect protocol version
@@ -128,17 +53,22 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_disconnect(client, userdata, rc):
+    '''fired upon a disconnection'''
+
     client.connected_flag = False
-    logger.error("MQTT disconnect: code={}".format(rc))
+    logger.error("MQTT disconnect")
+    logger.debug("userdata=%s, rc=%s", userdata, rc)
 
 
 def on_publish(client, userdata, mid):
+    '''fired upon a message published'''
+
     logger.info("MQTT published: topic={} mid={}".format(topic, mid))
 
 
 mqtt.Client.connected_flag = False
-mqtt_client = mqtt.Client(
-    __file__ + '_{0:010x}'.format(int(time.time() * 256))[:10])
+mqtt_client = mqtt.Client(__file__ +
+                          '_{0:010x}'.format(int(time.time() * 256))[:10])
 mqtt_client.on_connect = on_connect
 mqtt_client.on_disconnect = on_disconnect
 mqtt_client.on_publish = on_publish

@@ -7,6 +7,7 @@ import requests
 # create logger
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
+
 class NibeDownlink(object):
     def __init__(self, username, password, hpid, variables):
         self.auth_data = {
